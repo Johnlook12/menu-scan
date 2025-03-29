@@ -1,39 +1,50 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+import { Slot, Stack } from 'expo-router';
+import { SQLiteDatabase, SQLiteProvider } from 'expo-sqlite';
+import { TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+  const router = useRouter();
+  const createDbIfNeeded = async (db: SQLiteDatabase) => {
+    try {
+      await db.execAsync(
+        'CREATE TABLE IF NOT EXISTS dishes (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category TEXT, description TEXT, details TEXT);'
+      );
+    } catch (error) {
+      console.error('Error initializing database:', error);
     }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+  };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <SQLiteProvider databaseName={'database.db'} onInit={createDbIfNeeded}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
+        <Stack.Screen
+          name="index"
+          options={{
+            title: '🍔 Menú Restaurante',
+            headerStyle: { backgroundColor: '#2ecc71' },
+            headerTintColor: 'white',
+            // headerRight: () => (
+            //   <TouchableOpacity 
+            //     style={{ marginRight: 15 }}
+            //     onPress={() => router.push('./add-dish')}
+            //   >
+            //     <Ionicons name="add" size={28} color="white" />
+            //   </TouchableOpacity>
+            // )
+          }}
+        />
+        <Stack.Screen
+          name="add-dish"
+          options={{
+            title: '➕ Nuevo Plato',
+            headerStyle: { backgroundColor: '#2ecc71' },
+            headerTintColor: 'white'
+          }}
+        />
+        <Slot />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </SQLiteProvider>
   );
 }
